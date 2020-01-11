@@ -86,6 +86,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (conn->actual_protocol_version >= S2N_TLS13) {
         total_size += s2n_extensions_server_supported_versions_size();
         total_size += s2n_extensions_server_key_share_send_size(conn);
+        total_size += s2n_extensions_server_key_share_hello_retry_send_size(conn);
     }
 
     if (total_size == 0) {
@@ -153,8 +154,13 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
 
-    /* Write key share extension */
-    if (conn->actual_protocol_version >= S2N_TLS13) {
+    /* Write key share extension if it was present in the ClientHello */
+    if (conn->actual_protocol_version >= S2N_TLS13 && s2n_extensions_server_key_share_hello_retry_send_size(conn) > 0) {
+        printf("XXX We would have written out the key_share, but now we are NOT XXX\n");
+        /* This means that a key_share extension was sent, but no curves could be negotiated. Send our supported parameters. */
+        GUARD(s2n_extensions_server_key_share_hello_retry_send(conn, out));
+    }
+    if (conn->actual_protocol_version >= S2N_TLS13 && s2n_extensions_server_key_share_send_size(conn) > 0) {
         GUARD(s2n_extensions_server_key_share_send(conn, out));
     }
 

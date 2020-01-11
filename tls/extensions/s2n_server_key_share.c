@@ -69,6 +69,15 @@ int s2n_extensions_server_key_share_send_size(struct s2n_connection *conn)
     return key_share_size;
 }
 
+int s2n_extensions_server_key_share_hello_retry_send_size(struct s2n_connection *conn)
+{
+    const int key_share_size = S2N_SIZE_OF_EXTENSION_TYPE
+        + S2N_SIZE_OF_EXTENSION_DATA_SIZE
+        + S2N_SIZE_OF_NAMED_GROUP;
+
+    return key_share_size;
+}
+
 /*
  * Sends Key Share extension in Server Hello.
  *
@@ -86,6 +95,29 @@ int s2n_extensions_server_key_share_send(struct s2n_connection *conn, struct s2n
     ));
 
     GUARD(s2n_ecdhe_parameters_send(&conn->secure.server_ecc_params, out));
+
+    return 0;
+}
+
+/*
+ * Sends Key Share extension in a HelloRetryRequest.
+ *
+ * This message is sent when there was not enough information to proceed with a handshake.
+ */
+int s2n_extensions_server_key_share_hello_retry_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    notnull_check(out);
+
+    GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_KEY_SHARE));
+    GUARD(s2n_stuffer_write_uint16(out, s2n_extensions_server_key_share_hello_retry_send_size(conn)
+        - S2N_SIZE_OF_EXTENSION_TYPE
+        - S2N_SIZE_OF_EXTENSION_DATA_SIZE
+    ));
+
+    printf("XXX retry ext send size is %x\n", s2n_extensions_server_key_share_hello_retry_send_size(conn) - S2N_SIZE_OF_EXTENSION_TYPE);
+
+    /* extension_data field contains a KeyShareHelloRetryRequest value. This is simply a NamedGroup. sect. 4.2.8 */
+    GUARD(s2n_stuffer_write_uint16(out, s2n_ecc_supported_curves[0]->iana_id));
 
     return 0;
 }

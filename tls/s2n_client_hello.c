@@ -297,6 +297,9 @@ int s2n_process_client_hello(struct s2n_connection *conn)
         GUARD(s2n_client_extensions_recv(conn, client_hello->parsed_extensions));
     }
 
+    /* If a key share was not negotiated, respond with a HelloRetryRequest */
+    /* XXX */
+
     const struct s2n_cipher_preferences *cipher_preferences;
     GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
 
